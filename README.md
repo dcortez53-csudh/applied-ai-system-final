@@ -1,37 +1,34 @@
-# 🎵 Music Recommender Simulation
+# Applied AI System: Agentic Music Recommender
 
-## Project Summary
+## Base Project Summary
+This project is an extension of my Module 3 Music Recommender Simulation. The original project was a CLI-based content-based filtering system that scored songs based on genre, mood, and energy, and returned a ranked list to the user.
 
-This project is a content-based music recommender simulation. It reads a catalog of songs from a CSV file, compares their attributes (genre, mood, and energy) against a user's specific "taste profile," and calculates a numerical score for every song. The system then ranks the songs from highest to lowest score to generate a personalized top-5 recommendation list.
+## System Summary
+This extended version transforms the basic recommender into an **Agentic Recommender with Reliability Guardrails**. Instead of just ranking songs, the system acts as an agent: it calculates scores, applies a guardrail to prevent "filter bubbles" (by ensuring no two songs by the same artist appear in the top recommendations), calculates a confidence score based on how well the songs matched the user's profile, and logs its decision-making process.
 
----
+## Architecture Overview
+The system flows through an agentic loop:
+1. **Input:** User preferences (genre, mood, energy).
+2. **Agent Loop:** The system scores all songs and ranks them.
+3. **Guardrail:** Before finalizing the top 5, the agent checks the artist list. If an artist is duplicated, it skips the song and grabs the next highest.
+4. **Output:** A diverse playlist with a confidence score (0-100%).
 
-## How The System Works
+## Setup Instructions
+1. `python -m venv .venv`
+2. `source .venv/bin/activate`
+3. `pip install -r requirements.txt`
+4. `python -m src.main`
 
-Explain your design in plain language.
+## Sample Interactions
 
-**Features Used:**
-* **Song:** 'genre', 'mood', 'energy' (ranging from 0.0 to 1.0).
-* **UserProfile:** 'favorite_genre', 'favorite_mood', 'target_energy'.
+**Input 1: High-Energy Pop Fan**
+```text
+INFO: Agent started. Generating playlist for pop.
+INFO: Agent finished. Playlist confidence: 92.5%
 
-**How the Recommender Computes a Score:**
-The system uses a weighted scoring algorithm to judge every song in the catalog:
-1. **Genre Match:** +2.0 points if the song's genre matches the user's favorite.
-2. **Mood Match:** +1.0 point if the song's mood matches the user's favorite.
-3. **Energy Similarity:** Up to +1.0 point. It calculates the mathematical difference between the song's energy and the user's target energy. A perfect match gives +1.0, while a massive gap gives a much lower score.
+--- Agentic Output for pop fan ---
+1. Sunrise City by Neon Echo (Score: 3.82)
+2. Gym Hero by Max Pulse (Score: 3.78)
+3. Rooftop Lights by Indigo Parade (Score: 3.51)
 
-**How Songs are Chosen:**
-Every song is scored, and then the list is sorted in descending order. The top 5 songs with the highest overall scores are returned to the user.
-
----
-
-## Getting Started
-
-### Setup
-
-1. Create a virtual environment (optional but recommended):
-
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate      # Mac or Linux
-   .venv\Scripts\activate         # Windows
+System Confidence Score: 92.5%

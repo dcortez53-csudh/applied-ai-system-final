@@ -1,0 +1,7 @@
+graph TD
+    A[User Preference Input] --> B(Agentic Recommender Loop)
+    B -->|1. Retrieve Songs| C[Music Dataset]
+    B -->|2. Score & Rank| D[Scoring Logic]
+    D -->|3. Guardrail Check| E{Reliability Evaluator}
+    E -->|Fail: Too Repetitive| B
+    E -->|Pass: Diverse Playlist| F[Output: Top 5 with Confidence Score]

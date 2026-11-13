@@ -1,4 +1,8 @@
 import csv
+import logging
+
+# Set up logging for guardrails
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 class Song:
     def __init__(self, id, title, artist, genre, mood, energy, tempo_bpm, valence, danceability, acousticness):
@@ -8,17 +12,12 @@ class Song:
         self.genre = genre
         self.mood = mood
         self.energy = energy
-        self.tempo_bpm = tempo_bpm
-        self.valence = valence
-        self.danceability = danceability
-        self.acousticness = acousticness
 
 class UserProfile:
-    def __init__(self, favorite_genre, favorite_mood, target_energy, likes_acoustic=False):
+    def __init__(self, favorite_genre, favorite_mood, target_energy):
         self.favorite_genre = favorite_genre
         self.favorite_mood = favorite_mood
         self.target_energy = target_energy
-        self.likes_acoustic = likes_acoustic
 
 class Recommender:
     def __init__(self, songs):
@@ -34,40 +33,46 @@ class Recommender:
         score += (1.0 - energy_gap)
         return score
 
-    def recommend(self, user, k=5):
-        scored_songs = []
-        for song in self.songs:
-            score = self.score_song(user, song)
-            scored_songs.append((score, song))
+    def generate_playlist(self, user, k=5):
+        """Agentic workflow: Ranks, checks guardrails, and assigns confidence."""
+        logging.info(f"Agent started. Generating playlist for {user.favorite_genre}.")
         
+        scored_songs = [(self.score_song(user, song), song) for song in self.songs]
         scored_songs.sort(key=lambda x: x[0], reverse=True)
-        return [song for score, song in scored_songs[:k]]
+        
+        # Guardrail: Prevent Filter Bubble (No duplicate artists)
+        final_playlist = []
+        seen_artists = set()
+        
+        for score, song in scored_songs:
+            if song.artist not in seen_artists:
+                final_playlist.append((score, song))
+                seen_artists.add(song.artist)
+            if len(final_playlist) == k:
+                break
+                
+        if len(final_playlist) < k:
+            logging.warning("Guardrail triggered: Not enough unique artists in dataset.")
 
-    def explain_recommendation(self, user, song):
-        reasons = []
-        if song.genre.lower() == user.favorite_genre.lower():
-            reasons.append("Genre match (+2.0)")
-        if song.mood.lower() == user.favorite_mood.lower():
-            reasons.append("Mood match (+1.0)")
-        energy_gap = abs(song.energy - user.target_energy)
-        reasons.append(f"Energy similarity (+{1.0 - energy_gap:.2f})")
-        return ", ".join(reasons)
+        # Calculate Confidence Score (Average of top scores normalized)
+        avg_score = sum([s for s, _ in final_playlist]) / len(final_playlist) if final_playlist else 0
+        confidence = min(avg_score / 4.0, 1.0) # 4.0 is max possible score
+        
+        logging.info(f"Agent finished. Playlist confidence: {confidence*100:.1f}%")
+        return final_playlist, confidence
 
 def load_songs(filepath):
     songs = []
-    with open(filepath, mode='r', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            songs.append(Song(
-                id=int(row['id']),
-                title=row['title'],
-                artist=row['artist'],
-                genre=row['genre'],
-                mood=row['mood'],
-                energy=float(row['energy']),
-                tempo_bpm=int(row['tempo_bpm']),
-                valence=float(row['valence']),
-                danceability=float(row['danceability']),
-                acousticness=float(row['acousticness'])
-            ))
+    try:
+        with open(filepath, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                songs.append(Song(
+                    id=int(row['id']), title=row['title'], artist=row['artist'],
+                    genre=row['genre'], mood=row['mood'], energy=float(row['energy']),
+                    tempo_bpm=int(row['tempo_bpm']), valence=float(row['valence']),
+                    danceability=float(row['danceability']), acousticness=float(row['acousticness'])
+                ))
+    except FileNotFoundError:
+        logging.error("Guardrail: songs.csv file not found!")
     return songs
